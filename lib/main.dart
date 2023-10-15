@@ -3,10 +3,12 @@ import 'dart:async';
 import 'package:charts_painter/chart.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
-import 'package:meter_noise/xmpl.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:noise_meter/noise_meter.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:syncfusion_flutter_gauges/gauges.dart';
+
+import 'helper.dart';
 
 void main() {
   runApp(const MyApp());
@@ -19,23 +21,9 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'Sonic Sound Meter',
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a blue toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
@@ -57,9 +45,15 @@ class _NoiseMeterAppState extends State<NoiseMeterApp> {
   double higestVal=0;
   List<double> noiseList=[];
   Timer? _timer;
+  // bool isInsAdLoaded = false;
+  // late InterstitialAd interstitialAd;
+  late BannerAd bannerAd;
+  bool isAdLoaded = false;
 
   @override
   void initState() {
+    //initInterstialAd();
+    initBannerAd();
     super.initState();
   }
 
@@ -69,11 +63,13 @@ class _NoiseMeterAppState extends State<NoiseMeterApp> {
     super.dispose();
   }
 
-  void onData(NoiseReading noiseReading) {
+  void onData(NoiseReading noiseReading) async{
+
     setState(() {
       _latestReading = noiseReading;
       setHigestValue(_latestReading!.meanDecibel);
     });
+
 
   }
   void startContinuousLoop() {
@@ -83,7 +79,7 @@ class _NoiseMeterAppState extends State<NoiseMeterApp> {
         if(noiseList.length>=100){
           noiseList.clear();
         }
-        print('Function called at: ${DateTime.now()}');
+       // print('Function called at: ${DateTime.now()}');
         setState(() {
           noiseList.add(_latestReading!.meanDecibel);
         });
@@ -125,6 +121,12 @@ class _NoiseMeterAppState extends State<NoiseMeterApp> {
     _noiseSubscription = noiseMeter?.noise.listen(onData, onError: onError);
     startContinuousLoop();
     setState(() => _isRecording = true);
+
+    //add
+    if (isAdLoaded) {
+      print('This is calleddddd 2');
+      initBannerAd().show();
+    }
   }
 
   /// Stop sampling.
@@ -136,6 +138,7 @@ class _NoiseMeterAppState extends State<NoiseMeterApp> {
 
   @override
   Widget build(BuildContext context) => MaterialApp(
+    debugShowCheckedModeBanner: false,
     home: Scaffold(
 
       body: SingleChildScrollView(
@@ -145,29 +148,77 @@ class _NoiseMeterAppState extends State<NoiseMeterApp> {
                 Container(
                     margin: EdgeInsets.all(25),
                     child: Column(children: [
+                      // Container(
+                      //   child: Text(_isRecording ? "Mic: ON" : "Mic: OFF",
+                      //       style: TextStyle(fontSize: 25, color: Colors.blue)),
+                      //   margin: EdgeInsets.only(top: 20),
+                      // ),
                       Container(
-                        child: Text(_isRecording ? "Mic: ON" : "Mic: OFF",
-                            style: TextStyle(fontSize: 25, color: Colors.blue)),
+                        width: MediaQuery.sizeOf(context).width,
+                        height: 60,
                         margin: EdgeInsets.only(top: 20),
+                        child: isAdLoaded
+                            ? SizedBox(
+                          height: bannerAd.size.height.toDouble(),
+                          width: bannerAd.size.width.toDouble(),
+                          child: AdWidget(
+                            ad: bannerAd,
+                          ),
+                        )
+                            : SizedBox(),
                       ),
+
+                      // SfRadialGauge(
+                      //     axes: <RadialAxis>[
+                      //       RadialAxis(minimum: 0, maximum: 160,
+                      //           tickOffset: 20,
+                      //           showLastLabel: true,
+                      //           ranges: <GaugeRange>[
+                      //             GaugeRange(startValue: 0, endValue: 50, color:Colors.green,),
+                      //             GaugeRange(startValue: 50,endValue: 100,color: Colors.orange),
+                      //             GaugeRange(startValue: 100,endValue: 160,color: Colors.red)],
+                      //           pointers: <GaugePointer>[
+                      //             NeedlePointer(value: 90)],
+                      //           annotations: <GaugeAnnotation>[
+                      //             GaugeAnnotation(widget: Container(child:
+                      //             Text('90.0',style: TextStyle(fontSize: 25,fontWeight: FontWeight.bold))),
+                      //                 angle: 90, positionFactor: 0.5
+                      //             )]
+                      //       )]),
+
+
+
+
                       SfRadialGauge(
+                        animationDuration: 1000,
+                        enableLoadingAnimation:true,
                         axes: <RadialAxis>[
-                          RadialAxis(minimum: 0, maximum: 200, labelOffset: 30,
+                          RadialAxis(minimum: 0, maximum: 160, labelOffset: 20,
+                              interval: 20,
+                              ticksPosition: ElementsPosition.inside,
+                              minorTicksPerInterval: 3,
+                              showLastLabel: true,
                               axisLineStyle: AxisLineStyle(
                                   thicknessUnit: GaugeSizeUnit.factor,thickness: 0.08),
-
-                              majorTickStyle: MajorTickStyle(length: 6,thickness: 4,color: Colors.white),
-                              minorTickStyle: MinorTickStyle(length: 3,thickness: 3,color: Colors.white),
+                              majorTickStyle: MajorTickStyle(length: 20,thickness: 2.5,color: Colors.grey),
+                              minorTickStyle: MinorTickStyle(length: 12,thickness: 1.5,color: Colors.grey),
                               axisLabelStyle: GaugeTextStyle(color: Colors.black,fontWeight: FontWeight.bold,fontSize: 14 ),
 
                               ranges: <GaugeRange>[
-                                GaugeRange(startValue: 0, endValue: 200, sizeUnit: GaugeSizeUnit.factor,startWidth: 0.12,endWidth: 0.12,
-                                    gradient: SweepGradient(
-                                        colors: const<Color>[Colors.green,Colors.yellow,Colors.red],
-                                        stops: const<double>[0.0,0.5,1]))],
+                                GaugeRange(startValue: 0, endValue: 65, color:Colors.green,sizeUnit: GaugeSizeUnit.factor,startWidth: 0.12,endWidth: 0.12,),
+                                GaugeRange(startValue: 65,endValue: 110,color: Colors.orange,sizeUnit: GaugeSizeUnit.factor,startWidth: 0.12,endWidth: 0.12,),
+                                GaugeRange(startValue: 110,endValue: 160,color: Colors.red,sizeUnit: GaugeSizeUnit.factor,startWidth: 0.12,endWidth: 0.12,)
 
-                              pointers: <GaugePointer>[NeedlePointer(value:_latestReading==null?0:_latestReading!.meanDecibel, needleLength: 0.95, enableAnimation: true,
-                                  animationType: AnimationType.ease, needleStartWidth: 1.5, needleEndWidth: 6, needleColor: Colors.red,
+                                // GaugeRange(startValue: 0, endValue: 160, sizeUnit: GaugeSizeUnit.factor,startWidth: 0.12,endWidth: 0.12,
+                                //     gradient: SweepGradient(
+                                //         colors: const<Color>[Colors.green,Colors.yellow,Colors.red],
+                                //         stops: const<double>[0.0,0.5,0.7])
+                                // )
+                              ],
+
+                              pointers: <GaugePointer>[
+                                NeedlePointer(value:_latestReading==null?0:_latestReading!.meanDecibel, needleLength: 0.95, enableAnimation: true,
+                                  animationType: AnimationType.slowMiddle, needleStartWidth: 1.5, needleEndWidth: 6, needleColor: Colors.red,
                                   knobStyle: KnobStyle(knobRadius: 0.09))],
                               annotations: <GaugeAnnotation>[
                                 GaugeAnnotation(widget: Container(child:
@@ -175,28 +226,92 @@ class _NoiseMeterAppState extends State<NoiseMeterApp> {
                                     children: <Widget>[
                                       Text('${_latestReading==null?0:_latestReading!.meanDecibel.toStringAsFixed(2)} db', style: TextStyle(fontSize: 25,fontWeight: FontWeight.bold,color: Colors.black)),
                                       SizedBox(height: 20),
-                                      Text('${higestVal.toStringAsFixed(0)} db', style: TextStyle(fontSize: 14,fontWeight: FontWeight.bold))]
+                                      Text('Max: ${higestVal.toStringAsFixed(0)} db', style: TextStyle(fontSize: 14,fontWeight: FontWeight.bold)),
+                                      // SizedBox(height: 10,),
+                                      // Text(
+                                      //   'Max: ${higestVal.toStringAsFixed(2)} dB',
+                                      // ),
+                                    ]
                                 )), angle: 90, positionFactor: 1.4)]
 
                           ),
                         ],
 
                       ),
-                      Container(
-                        child: Text(
-                          'Noise: ${_latestReading?.meanDecibel.toStringAsFixed(2)} dB',
-                        ),
-                        margin: EdgeInsets.only(top: 20),
-                      ),
-                      Container(
-                        child: Text(
-                          'Max: ${higestVal.toStringAsFixed(2)} dB',
-                        ),
+
+
+
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              primary: Colors.blueAccent,
+                              padding: EdgeInsets.only(top: 16,bottom: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(80.0),
+                              ),
+                            ),
+                            onPressed: (){
+                              setState(() {
+                                stop();
+                                noiseList.clear();
+                                _latestReading=null;
+                              });
+                            },
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.restart_alt,
+                                  color: Colors.white,
+                                  size: 30,
+                                ),
+                                //SizedBox(width: 10), // Add some spacing between the icon and text
+                                // Text(
+                                //   _isRecording ? 'Stop' : 'Start',
+                                //   style: TextStyle(
+                                //     fontSize: 20,
+                                //     color: Colors.white,
+                                //   ),
+                                // ),
+                              ],
+                            ),
+                          ),
+                          SizedBox(width: 20,),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              primary: _isRecording ? Colors.red : Colors.green,
+                              padding: EdgeInsets.only(top: 16,bottom: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(80.0),
+                              ),
+                            ),
+                            onPressed: _isRecording ? stop : start,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  _isRecording ? Icons.stop : Icons.play_arrow_rounded,
+                                  color: Colors.white,
+                                  size: 30,
+                                ),
+                                //SizedBox(width: 10), // Add some spacing between the icon and text
+                                // Text(
+                                //   _isRecording ? 'Stop' : 'Start',
+                                //   style: TextStyle(
+                                //     fontSize: 20,
+                                //     color: Colors.white,
+                                //   ),
+                                // ),
+                              ],
+                            ),
+                          ),
+                        ],
                       )
                     ])),
-               if(noiseList.isNotEmpty) Container(height: 300,
+               Container(height: 260,
                  padding: EdgeInsets.only(top: 10,right: 10),
-                 color: Colors.white,
                  child: LineChart(
                    LineChartData(
                      gridData: FlGridData(show: true),
@@ -212,6 +327,7 @@ class _NoiseMeterAppState extends State<NoiseMeterApp> {
                      maxX: 100,
                      minY: 40,
                      maxY: 160,
+
                      lineBarsData: [
                        LineChartBarData(
                          spots: noiseList.asMap().entries.map((entry) {
@@ -228,11 +344,11 @@ class _NoiseMeterAppState extends State<NoiseMeterApp> {
                  ),)
 
               ])),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: _isRecording ? Colors.red : Colors.green,
-        child: _isRecording ? Icon(Icons.stop) : Icon(Icons.mic),
-        onPressed: _isRecording ? stop : start,
-      ),
+      // floatingActionButton: FloatingActionButton(
+      //   backgroundColor: _isRecording ? Colors.red : Colors.green,
+      //   child: _isRecording ? Icon(Icons.stop) : Icon(Icons.mic),
+      //   onPressed: _isRecording ? stop : start,
+      // ),
     ),
   );
 
@@ -246,5 +362,48 @@ class _NoiseMeterAppState extends State<NoiseMeterApp> {
       higestVal=value1;
     }
     return higestVal;
+  }
+
+  // initInterstialAd() {
+  //   print('THIS IS CALLED');
+  //   InterstitialAd.load(
+  //     adUnitId: AdHelper.interstitialAdUnitId,
+  //     request: const AdRequest(),
+  //     adLoadCallback: InterstitialAdLoadCallback(onAdLoaded: (ad) {
+  //       print('ADD IS LOADED');
+  //       interstitialAd = ad;
+  //       setState(() {
+  //         isInsAdLoaded = true;
+  //       });
+  //       interstitialAd.fullScreenContentCallback =
+  //           FullScreenContentCallback(onAdDismissedFullScreenContent: (ad) {
+  //             initInterstialAd();
+  //             // ad.dispose();
+  //             // setState(() {
+  //             //   isInsAdLoaded=true;
+  //             // });
+  //           });
+  //     }, onAdFailedToLoad: (err) {
+  //       interstitialAd.dispose();
+  //       print('ADD ERROR ${err}');
+  //     }),
+  //   );
+  // }
+
+  initBannerAd() {
+    bannerAd = BannerAd(
+        size: AdSize.banner,
+        adUnitId: AdHelper.bannerAdUnitId,
+        listener: BannerAdListener(onAdLoaded: (ad) {
+          setState(() {
+            isAdLoaded = true;
+          });
+        }, onAdFailedToLoad: (ad, error) {
+          ad.dispose();
+          print(error);
+          initBannerAd();
+        }),
+        request: const AdRequest());
+    bannerAd.load();
   }
 }
