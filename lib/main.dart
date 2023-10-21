@@ -190,7 +190,7 @@ class _NoiseMeterAppState extends State<NoiseMeterApp> {
 
 
                       SfRadialGauge(
-                        animationDuration: 1000,
+                        animationDuration: 2000,
                         enableLoadingAnimation:true,
                         axes: <RadialAxis>[
                           RadialAxis(minimum: 0, maximum: 160, labelOffset: 20,

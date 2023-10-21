@@ -1,4 +1,4 @@
-package com.example.meter_noise
+package com.bitbirds.noise_meter
 
 import io.flutter.embedding.android.FlutterActivity
 
