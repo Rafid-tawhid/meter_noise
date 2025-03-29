@@ -1,7 +1,7 @@
 import 'dart:io';
 
 class AdHelper {
-  //
+
   static String get bannerAdUnitId {
     if (Platform.isAndroid) {
       return 'ca-app-pub-4928964610665981/9718023637'; // real id
